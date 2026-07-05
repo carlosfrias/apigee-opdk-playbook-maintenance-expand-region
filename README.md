@@ -1,38 +1,63 @@
-Apigee OPDK Installation to add Second Data Center to an Existing Data Center
-=============================================================================
+# apigee-opdk-playbook-maintenance-expand-region — Add a Datacenter to an Existing Apigee OPDK Planet
 
-# Ansible Roles
+> **A runbook that adds a second (or third) datacenter to a running Apigee Edge Private Cloud planet** — without taking the existing region down. A 51-role dependency graph that joins the new DC's Cassandra ring, stands up cross-DC Postgres replication, re-registers routers, and validates the expanded topology.
 
-The following ansible roles will be installed with the requirements.yml file:
+> [!NOTE]
+> Engineering portfolio note — this project demonstrates multi-datacenter topology choreography with live-planet expansion and pre-flight validation. See the [skills assessment →](SKILLS-ASSESSMENT.md) for the expertise applied.
 
-* [opdk-setup-apigee-user](https://github.com/carlosfrias/apigee-opdk-setup-apigee-user)
-* [opdk-setup-os-common](https://github.com/carlosfrias/apigee-opdk-setup-os-common)
-* [opdk-setup-os-ds](https://github.com/carlosfrias/apigee-opdk-setup-os-ds)
-* [opdk-setup-os-minimum](https://github.com/carlosfrias/apigee-opdk-setup-os-minimum)
-* [opdk-setup-default-settings](https://github.com/carlosfrias/apigee-opdk-setup-default-settings)
-* [opdk-time-sync](https://github.com/carlosfrias/apigee-opdk-time-sync)
-* [opdk-setup-openjdk](https://github.com/carlosfrias/apigee-opdk-setup-openjdk)
-* [opdk-setup-bootstrap](https://github.com/carlosfrias/apigee-opdk-setup-bootstrap)
-* [opdk-setup-silent-installation-config](https://github.com/carlosfrias/apigee-opdk-setup-silent-installation-config)
-* [opdk-setup-component](https://github.com/carlosfrias/apigee-opdk-setup-component)
-* [opdk-setup-component-installer](https://github.com/carlosfrias/apigee-opdk-setup-component-installer)
-* [opdk-setup-selinux-disable](https://github.com/carlosfrias/apigee-opdk-setup-selinux-disable)
-* [opdk-shutdown-iptables](https://github.com/carlosfrias/apigee-opdk-shutdown-iptables)
-* [opdk-setup-org-config](https://github.com/carlosfrias/apigee-opdk-setup-org-config)
-* [opdk-setup-org](https://github.com/carlosfrias/apigee-opdk-setup-org)
-* [opdk-setup-validate](https://github.com/carlosfrias/apigee-opdk-setup-validate)
-* [opdk-setup-validate-cleanup](https://github.com/carlosfrias/apigee-opdk-setup-validate-cleanup)
-* [opdk-setup-apigee-log-files](https://github.com/carlosfrias/apigee-opdk-setup-apigee-log-files)
-* [fetch-files](https://github.com/carlosfrias/apigee-fetch-files)
+This is the multi-region expansion counterpart to the [rolling-upgrade runbook](https://github.com/carlosfrias/apigee-opdk-playbook-maintenance-opdk-upgrade). Ansible is the medium; the durable work is the **multi-datacenter topology choreography** — ring merge, cross-DC replication, and pre-flight validation across 9 component groups.
 
 <!-- BEGIN Google Required Disclaimer -->
 
-# Not Google Product Clause
+## Not Google Product Clause
 
 This is not an officially supported Google product.
 <!-- END Google Required Disclaimer -->
-<!-- BEGIN Google How To Contribute -->
-# How to Contribute
 
-We'd love to accept your patches and contributions to this project. Please review our [guidelines](CONTRIBUTING.md).
-<!-- END Google How To Contribute -->
+---
+
+## What the runbook actually does
+
+- **Pre-flight** — `opdk-internal-port-connectivity-validator.yml` validates internal port connectivity across all component groups in the new DC before any install.
+- **Provision the new DC** — OS prerequisites, OpenJDK, bootstrap, silent-install configuration for the new region.
+- **Join the Cassandra ring** — new DC data nodes rebuild from the established DC (`rebuild dc-<source>`), merging into the existing ring.
+- **Stand up Postgres** — new DC master/standby with cross-region replication to the existing analytics datastore.
+- **Install + register components** — MS, routers, message processors, Qpid, LDAP, UI in the new DC, registered against the Management Server.
+- **Re-register routers** — cross-DC router re-registration so traffic routes to the expanded planet.
+- **Validate + capture** — log/config forensic harvest (`opdk-setup-log-files.yml`).
+
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `requirements.yml` | The 51-role dependency graph (the architecture) |
+| `installation.yml` (via the roles) | The ordered expansion runbook |
+| `opdk-internal-port-connectivity-validator.yml` | 9-group pre-flight port validation |
+| `installation-rollback.yml` | Reverse the expansion |
+| `clean.yml` | Tear down the added DC |
+| `opdk-setup-log-files.yml` | Per-group forensic log/config capture |
+
+---
+
+## Usage
+
+```bash
+ansible-playbook installation.yml -i your_inventory   # add a DC to the existing planet
+ansible-playbook installation-rollback.yml -i your_inventory   # reverse the expansion
+```
+
+Bring your own inventory with the existing DC and the new DC's groups (`dc-1`, `dc-2`, …, component groups). Expects the `apigee-opdk-*` role corpus (composed via `requirements.yml`). See [`apigee-edge-opdk`](https://github.com/carlosfrias/apigee-edge-opdk) for the framework.
+
+---
+
+## Provenance
+
+Authored and maintained by **Carlos Frias** during his tenure on Apigee Edge Private Cloud. The multi-region expansion counterpart to the [rolling-upgrade runbook](https://github.com/carlosfrias/apigee-opdk-playbook-maintenance-opdk-upgrade); part of the `apigee-opdk-*` role corpus.
+
+Contributions welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+See [LICENSE](./LICENSE).
