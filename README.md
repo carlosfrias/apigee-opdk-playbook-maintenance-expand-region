@@ -1,5 +1,8 @@
 # apigee-opdk-playbook-maintenance-expand-region — Add a Datacenter to an Existing Apigee OPDK Planet
 
+> 🔄 **Evolution note:** The automation approach from this OPDK-era role has been consolidated into the `apigee-hybrid-workspace` Ansible collection. See the successor capability in the portfolio hub: [`carlosfrias/apigee-hybrid-workspace`](https://github.com/carlosfrias/apigee-hybrid-workspace) → `bap_coe/private_cloud/` and `bap_coe/apigee_hybrid/`. The collection README explains each role group’s business value and production context.
+
+
 > **A runbook that adds a second (or third) datacenter to a running Apigee Edge Private Cloud planet** — without taking the existing region down. A 51-role dependency graph that joins the new DC's Cassandra ring, stands up cross-DC Postgres replication, re-registers routers, and validates the expanded topology.
 
 > [!NOTE]
